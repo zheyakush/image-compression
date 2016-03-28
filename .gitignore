@@ -1,0 +1,11 @@
+.idea
+test/
+archive/*
+!archive/index.html
+log/*
+!log/index.html
+result/*
+vendor/
+composer.lock
+
+.htaccess
