@@ -30,7 +30,7 @@ class ImageCompression
     /**
      * @var string
      */
-    protected $_resultPath = "../result";
+    protected $_resultPath;
     /**
      * @var string
      */
@@ -56,6 +56,10 @@ class ImageCompression
      */
     protected $_logFile;
     /**
+     * @var string
+     */
+    protected $_uid;
+    /**
      * @var int
      */
     protected $_processedFilesCount = 0;
@@ -72,23 +76,31 @@ class ImageCompression
             foreach ($_SESSION['compressorObj'] as $field => $data) {
                 $this->$field = $data;
             }
-
-            switch ($_POST["type"]) {
-                case "progress":
-                    $this->_runCompression();
-                    break;
-                case "log":
-                    $this->_downloadLogFile();
-                    break;
-                case "archive":
-                    $this->_downloadArchiveFile();
-                    break;
-
+            try {
+                switch ($_POST["type"]) {
+                    case "progress":
+                        $this->_runCompression();
+                        break;
+                    case "log":
+                        $this->_downloadLogFile();
+                        break;
+                    case "archive":
+                        $this->_downloadArchiveFile();
+                        break;
+                    case "break":
+                        $this->_removeUnnecessaryFile();
+                        break;
+                }
+            } catch (Exception $e) {
+                $this->_response([
+                    "error"    => $e->getMessage()
+                ]);
             }
 
         } else {
             $this->_apiKeys = (array)$_POST["apiKey"];
             $this->_sourcePath = (array)$_POST["sourcePath"];
+            $this->_uid = md5(time() . rand());
             $this->_prepareFilesList();
             $_SESSION['compressorObj'] = $this;
 
@@ -168,7 +180,7 @@ class ImageCompression
     protected function _runCompression()
     {
         $fileInfo = $this->_originFiles[$this->_processedFilesCount];
-        $resultPath = $this->_resultPath . $fileInfo['path'];
+        $resultPath = $this->_getPathToResults() . $fileInfo['path'];
         $this->_checkFolder($resultPath);
 
         $resultFilePath = $resultPath . DIRECTORY_SEPARATOR . $fileInfo["fileName"];
@@ -239,6 +251,7 @@ class ImageCompression
      * @param $fileInfo
      * @param $resultFilePath
      * @return bool
+     * @throws Exception
      */
     protected function _compress($apiKey, $fileInfo, $resultFilePath)
     {
@@ -252,6 +265,10 @@ class ImageCompression
         } catch (Exception $e) {
             $this->_activeKeyIndex++;
             $_SESSION['compressorObj'] = $this;
+            if ($this->_activeKeyIndex >= count($this->_apiKeys)) {
+                throw  new Exception("You have already used free limit on image compression for this API");
+            }
+
             $this->_compress($this->_apiKeys[$this->_activeKeyIndex], $fileInfo, $resultFilePath);
 
             exit;
@@ -266,7 +283,7 @@ class ImageCompression
         $this->_logRows[] = $string;
         if (is_null($this->_logFile)) {
             $this->_checkFolder($this->_logPath);
-            $this->_logFile = $this->_logPath . DIRECTORY_SEPARATOR . "compression_" . time() . ".csv";
+            $this->_logFile = $this->_logPath . DIRECTORY_SEPARATOR . "compression_" . $this->_uid . ".csv";
             if ($f = fopen($this->_logFile, 'a+')) {
                 $header = "File;Origin bytes;Origin size;Compressed bytes;Compressed size;" . PHP_EOL;
                 fwrite($f, $header);
@@ -309,7 +326,10 @@ class ImageCompression
         $source = str_replace('\\', '/', realpath($source));
 
         if (is_dir($source) === true) {
-            $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source), RecursiveIteratorIterator::SELF_FIRST);
+            $files = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($source),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
 
             foreach ($files as $file) {
                 $file = str_replace('\\', '/', $file);
@@ -375,7 +395,7 @@ class ImageCompression
     protected function _downloadArchiveFile()
     {
         $archiveFile = $this->_archivePath . DIRECTORY_SEPARATOR . basename($this->_logFile) . ".zip";
-        $this->_zip(trim($this->_resultPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR, $archiveFile);
+        $this->_zip(trim($this->_getPathToResults(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR, $archiveFile);
         if (file_exists($archiveFile)) {
             $this->_prepareHeadersForDownloading($archiveFile);
             // читаем файл и отправляем его пользователю
@@ -383,5 +403,59 @@ class ImageCompression
 
             exit;
         }
+    }
+
+    /**
+     * @return string
+     */
+    protected function _getPathToResults()
+    {
+        if (is_null($this->_resultPath)) {
+            $this->_resultPath = "../result" . DIRECTORY_SEPARATOR . $this->_uid;
+            $_SESSION['compressorObj'] = $this;
+        }
+
+        return $this->_resultPath;
+    }
+
+    /**
+     * @param $path
+     * @return bool
+     *
+     */
+    protected function _remove($path)
+    {
+        if (is_dir($path) === true) {
+            $files = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($path),
+                RecursiveIteratorIterator::CHILD_FIRST
+            );
+
+            foreach ($files as $file) {
+                if (in_array($file->getBasename(), ['.', '..']) !== true) {
+                    if ($file->isDir() === true) {
+                        rmdir($file->getPathName());
+                    } else if (($file->isFile() === true) || ($file->isLink() === true)) {
+                        unlink($file->getPathname());
+                    }
+                }
+            }
+
+            return rmdir($path);
+        } else if ((is_file($path) === true) || (is_link($path) === true)) {
+            return unlink($path);
+        }
+
+        return false;
+    }
+
+    /**
+     * Removes files for current user. Used after click on break button
+     */
+    protected function _removeUnnecessaryFile()
+    {
+        $this->_remove($this->_getPathToResults());
+        $this->_remove($this->_logFile);
+        unset($_SESSION["compressorObj"]);
     }
 }
