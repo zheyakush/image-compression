@@ -23,7 +23,7 @@ $compressor = new ImageCompression();
             <label for="apiKey">API Key </label>
             <span class="glyphicon glyphicon-plus text-success" onclick="Compressor.addAdditionalKey();"></span>
             <input type="text" class="form-control" name="apiKey[]" id="apiKey"
-                   placeholder="API Key" value="QocRXwKQW5dqSJGURV6gW87TbM7OoUq4"/>
+                   placeholder="API Key" />
         </div>
         <div class="input-group form-group hide" id="apiKeyTpl">
             <input type="text" class="form-control" placeholder="API Key" value=""/>
@@ -33,8 +33,7 @@ $compressor = new ImageCompression();
             <label for="sourcePath">Path to sources</label>
             <span class="glyphicon glyphicon-plus text-success" onclick="Compressor.addAdditionalPath();"></span>
             <input type="text" class="form-control" id="sourcePath" placeholder="Path to sources"
-                   name="sourcePath"
-                   value="/home/yakush/project/utils/image-compression/test"/>
+                   name="sourcePath" />
         </div>
         <div class="input-group form-group hide" id="sourcePathTpl">
             <input type="text" class="form-control" placeholder="Path to sources" value=""/>
