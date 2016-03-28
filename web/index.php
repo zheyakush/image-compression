@@ -39,19 +39,22 @@ $compressor = new ImageCompression();
             <input type="text" class="form-control" placeholder="Path to sources" value=""/>
             <span class="btn btn-default input-group-addon" onclick="Compressor.removePath(this);">-</span>
         </div>
-        <button type="button" class="btn btn-default" id="btnCompress" onclick="window.Compressor.submit(this)">Compress</button>
-        <button type="button" class="btn btn-danger hide" id="btnBreak" onclick="window.Compressor.break(this)">Break</button>
-
-        <button type="button" class="btn btn-success hide" id="btnLog" onclick="window.Compressor.downloadLog()">Log file</button>
-        <button type="button" class="btn btn-success hide" id="btnArchive" onclick="window.Compressor.downloadArchive()">Archive file</button>
+        <button type="button" class="btn btn-default"
+                id="btnCompress" onclick="window.Compressor.submit(this)">Compress</button>
+        <button type="button" class="btn btn-danger hide"
+                id="btnBreak" onclick="window.Compressor.break(this)">Break</button>
+        <button type="button" class="btn btn-success hide"
+                id="btnLog" onclick="window.Compressor.downloadLog()">Log file</button>
+        <button type="button" class="btn btn-success hide"
+                id="btnArchive" onclick="window.Compressor.downloadArchive()">Archive file</button>
     </form>
 
     <div class="progress hide" style="margin-top: 20px">
         <div class="label label-info status">
             <span id="processedFiles">0</span> / <span id="countFiles"></span>
         </div>
-        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="0"
-             style="width: 0%;">
+        <div class="progress-bar progress-bar-striped active"
+             role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="0" style="width: 0%;">
         </div>
     </div>
     <table class="table table-striped table-result hide">
